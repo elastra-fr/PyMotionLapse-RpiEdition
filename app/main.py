@@ -14,5 +14,7 @@ app.include_router(pages.router, tags=["pages"])
 
 #Routeur vers l'API de capture
 app.include_router(capture.router, prefix="/api/capture", tags=["capture"])
+#Routeur vers l'API de paramètres
+app.include_router(capture.router, prefix="/api/settings", tags=["settings"])
 
 
