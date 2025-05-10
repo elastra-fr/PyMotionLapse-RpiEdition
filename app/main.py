@@ -6,7 +6,12 @@ from app.routes import pages, capture
 
 app = FastAPI()
 
+#Monter le répertoire statique pour servir les fichiers CSS, JS, etc.
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+
 app.include_router(pages.router, tags=["pages"])
+
 
 app.include_router(capture.router, prefix="/api/capture", tags=["capture"])
 
