@@ -21,18 +21,43 @@ class CameraParamsService:
 
     def get_current_params(self):
         """
-        Récupère les paramètres actuels de la caméra au format JSON.
+        Récupère les paramètres actuels de la caméra dans un format lisible.
         """
         try:
             device = f"/dev/video{self.camera_index}"
             
-            # Récupérer les paramètres
+            # Récupérer tous les paramètres bruts
+            raw_controls = self._get_current_controls(device)
+            mappings = raw_controls.pop("_mappings", {})
+            
+            # Créer un dictionnaire inversé pour trouver l'ID hex par nom
+            name_to_id = {v: k for k, v in mappings.items()}
+            
+            # Organiser les contrôles de manière plus lisible
+            readable_controls = {}
+            for name, hex_id in name_to_id.items():
+                if hex_id in raw_controls:
+                    readable_controls[name] = {
+                        "id": hex_id,
+                        "value": raw_controls[hex_id]
+                    }
+            
+            # Ajouter les contrôles qui n'ont pas de mappage
+            for key, value in raw_controls.items():
+                if key not in [v for k, v in name_to_id.items()]:
+                    readable_controls[key] = {
+                        "id": key,
+                        "value": value
+                    }
+            
+            # Construire la réponse finale
             params = {
                 "camera_index": self.camera_index,
                 "device": device,
-                "controls": self._get_current_controls(device),
+                "controls": readable_controls,
                 "resolution": self._get_current_resolution(device),
-                "info": self.get_camera_info()
+                "info": self.get_camera_info(),
+                "supported_resolutions": self.get_supported_resolutions()
             }
             
             return params
@@ -74,15 +99,35 @@ class CameraParamsService:
                 "0x009a090c": "focus_automatic_continuous"
             }
             
-            # Format typique: "brightness (int)   : min=0 max=255 step=1 default=128 value=128"
-            control_pattern = r"(\w+)\s+\(\w+\)\s*:.+value=(-?\d+)"
+            # Format typique: "brightness 0x00980900 (int)   : min=0 max=255 step=1 default=128 value=128"
+            # Extraire à la fois le nom et l'identifiant
+            full_pattern = r"(\w+)\s+(0x[0-9a-f]+)\s+\(\w+\)\s*:.+value=(-?\d+)"
             
             for line in result.stdout.splitlines():
-                match = re.search(control_pattern, line)
+                # Essayer d'abord avec le pattern complet
+                match = re.search(full_pattern, line)
                 if match:
-                    key = match.group(1)
+                    name = match.group(1)
+                    hex_id = match.group(2)
+                    value = int(match.group(3))
+                    controls[hex_id] = value
+                    continue
+                
+                # Pattern simplifié pour les cas où l'ID n'est pas visible
+                simple_pattern = r"(\w+)\s+\(\w+\)\s*:.+value=(-?\d+)"
+                match = re.search(simple_pattern, line)
+                if match:
+                    name = match.group(1)
                     value = int(match.group(2))
-                    controls[key] = value
+                    
+                    # Chercher l'ID hex pour ce nom
+                    for hex_id, mapped_name in control_mappings.items():
+                        if mapped_name == name:
+                            controls[hex_id] = value
+                            break
+                    else:
+                        # Si aucun ID n'est trouvé, utiliser le nom comme clé
+                        controls[name] = value
             
             # Ajouter le mappage pour référence
             controls["_mappings"] = control_mappings
