@@ -4,9 +4,8 @@ import time
 from pathlib import Path
 from datetime import datetime
 
-
-from .import camera_utils
-from .import camera_commands as v4l2_wrapper
+from . import camera_utils
+from . import camera_commands as v4l2_wrapper
 
 class PreviewService:
     def __init__(self, camera_index=0, output_dir="captures"):
@@ -17,7 +16,6 @@ class PreviewService:
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
         self.logger = logging.getLogger(__name__)
         
-        
         # Sur Raspberry Pi, on vérifie v4l2-ctl
         self.v4l2_path = camera_utils.find_v4l2_path()
         if not self.v4l2_path:
@@ -25,28 +23,27 @@ class PreviewService:
             raise RuntimeError("v4l2-ctl est requis. Installez avec: sudo apt install v4l-utils")
             
         self.logger.info(f"v4l2-ctl trouvé à {self.v4l2_path}")
+        
+        # Fichier unique pour l'aperçu
+        self.preview_file = os.path.join(self.output_dir, "preview.jpg")
 
     def capture_image(self):
         """
-        Capture une image brute avec v4l2 sans modification de qualité.
+        Capture une image et écrase l'ancienne.
         """
         start_time = time.time()
         
-        # Générer un nom de fichier unique
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        image_path = os.path.join(self.output_dir, f"capture_{timestamp}.jpg")
-        
         try:
             device = f"/dev/video{self.camera_index}"
-            capture_success = v4l2_wrapper.capture_image(self.v4l2_path, device, image_path)
+            capture_success = v4l2_wrapper.capture_image(self.v4l2_path, device, self.preview_file)
             
-            if not capture_success or not os.path.exists(image_path):
+            if not capture_success or not os.path.exists(self.preview_file):
                 self.logger.error("Échec de la capture avec v4l2")
                 raise RuntimeError("Impossible de capturer une image avec v4l2")
                 
             elapsed_time = time.time() - start_time
             self.logger.info(f"Image capturée en {elapsed_time:.2f}s")
-            return image_path
+            return self.preview_file
             
         except Exception as e:
             self.logger.error(f"Erreur lors de la capture: {str(e)}")
