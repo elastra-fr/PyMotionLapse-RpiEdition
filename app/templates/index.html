@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}PyMotionLapse - Accueil{% endblock %}
+
+{% block page_title %}Bienvenue sur PyMotionLapse{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h2><i class="fas fa-camera me-2"></i>Caméra</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead">Créez des time-lapses et animations en stop motion.</p>
+                <div class="d-grid gap-2">
+                    <a href="/timelapse" class="btn btn-primary">
+                        <i class="fas fa-clock me-2"></i>Créer un Time-lapse
+                    </a>
+                    <a href="/stopmotion" class="btn btn-success">
+                        <i class="fas fa-film me-2"></i>Créer un Stop Motion
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h2><i class="fas fa-info-circle me-2"></i>À propos</h2>
+            </div>
+            <div class="card-body">
+                <h3>Fonctionnalités principales</h3>
+                <ul class="list-group list-group-flush mb-3">
+                    <li class="list-group-item"><i class="fas fa-check text-success me-2"></i>Créez facilement des time-lapses</li>
+                    <li class="list-group-item"><i class="fas fa-check text-success me-2"></i>Animation en stop motion</li>
+                    <li class="list-group-item"><i class="fas fa-check text-success me-2"></i>Contrôle de caméra avancé</li>
+                    <li class="list-group-item"><i class="fas fa-check text-success me-2"></i>Exportation en vidéo</li>
+                </ul>
+                <p>Application open-source développée avec Python, FastAPI et OpenCV.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page d\'accueil chargée');
+});
+</script>
+{% endblock %}
