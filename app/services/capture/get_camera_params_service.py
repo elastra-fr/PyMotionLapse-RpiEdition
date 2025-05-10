@@ -42,7 +42,7 @@ class CameraParamsService:
             return {"error": str(e)}
 
     def _get_current_controls(self, device):
-        """Récupère les valeurs actuelles des contrôles de la caméra."""
+        """Récupère les valeurs actuelles des contrôles de la caméra avec un mappage des noms."""
         try:
             # Utiliser --list-ctrls pour obtenir les contrôles avec leurs valeurs
             cmd = [self.v4l2_path, "-d", device, "--list-ctrls"]
@@ -53,6 +53,27 @@ class CameraParamsService:
                 return {}
                 
             controls = {}
+            control_mappings = {
+                # User Controls
+                "0x00980900": "brightness",
+                "0x00980901": "contrast",
+                "0x00980902": "saturation",
+                "0x00980903": "hue",
+                "0x0098090c": "white_balance_automatic",
+                "0x00980910": "gamma",
+                "0x00980913": "gain",
+                "0x00980918": "power_line_frequency",
+                "0x0098091a": "white_balance_temperature",
+                "0x0098091b": "sharpness",
+                "0x0098091c": "backlight_compensation",
+                
+                # Camera Controls
+                "0x009a0901": "auto_exposure",
+                "0x009a0902": "exposure_time_absolute",
+                "0x009a090a": "focus_absolute",
+                "0x009a090c": "focus_automatic_continuous"
+            }
+            
             # Format typique: "brightness (int)   : min=0 max=255 step=1 default=128 value=128"
             control_pattern = r"(\w+)\s+\(\w+\)\s*:.+value=(-?\d+)"
             
@@ -62,6 +83,9 @@ class CameraParamsService:
                     key = match.group(1)
                     value = int(match.group(2))
                     controls[key] = value
+            
+            # Ajouter le mappage pour référence
+            controls["_mappings"] = control_mappings
             
             return controls
             
