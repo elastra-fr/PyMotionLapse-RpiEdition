@@ -1,5 +1,7 @@
 # PyMotionLapse
 
+En cours de développement
+
 ## Configuration
 
 ### Création d'un environnement virtuel
