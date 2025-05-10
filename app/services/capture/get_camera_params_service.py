@@ -31,7 +31,8 @@ class CameraParamsService:
                 "camera_index": self.camera_index,
                 "device": device,
                 "controls": self._get_current_controls(device),
-                "resolution": self._get_current_resolution(device)
+                "resolution": self._get_current_resolution(device),
+                "info": self.get_camera_info()
             }
             
             return params
@@ -43,8 +44,8 @@ class CameraParamsService:
     def _get_current_controls(self, device):
         """Récupère les valeurs actuelles des contrôles de la caméra."""
         try:
-            # Récupérer les valeurs actuelles avec -C (--get-ctrl)
-            cmd = [self.v4l2_path, "-d", device, "--get-ctrl", "all"]
+            # Utiliser --list-ctrls pour obtenir les contrôles avec leurs valeurs
+            cmd = [self.v4l2_path, "-d", device, "--list-ctrls"]
             result = subprocess.run(cmd, capture_output=True, text=True)
             
             if result.returncode != 0:
@@ -52,24 +53,15 @@ class CameraParamsService:
                 return {}
                 
             controls = {}
+            # Format typique: "brightness (int)   : min=0 max=255 step=1 default=128 value=128"
+            control_pattern = r"(\w+)\s+\(\w+\)\s*:.+value=(-?\d+)"
+            
             for line in result.stdout.splitlines():
-                if ":" in line:
-                    parts = line.split(":", 1)
-                    if len(parts) == 2:
-                        key = parts[0].strip()
-                        value_str = parts[1].strip()
-                        
-                        # Extraire la valeur numérique si possible
-                        try:
-                            # Tenter de convertir en int ou float
-                            value = int(value_str)
-                        except ValueError:
-                            try:
-                                value = float(value_str)
-                            except ValueError:
-                                value = value_str
-                            
-                        controls[key] = value
+                match = re.search(control_pattern, line)
+                if match:
+                    key = match.group(1)
+                    value = int(match.group(2))
+                    controls[key] = value
             
             return controls
             
@@ -133,3 +125,92 @@ class CameraParamsService:
         except Exception as e:
             self.logger.error(f"Erreur lors de la récupération des infos caméra: {str(e)}")
             return {}
+            
+    def get_supported_resolutions(self):
+        """Récupère toutes les résolutions supportées par la caméra."""
+        try:
+            device = f"/dev/video{self.camera_index}"
+            cmd = [self.v4l2_path, "-d", device, "--list-formats-ext"]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                self.logger.error(f"Erreur lors de la récupération des résolutions supportées: {result.stderr}")
+                return []
+                
+            resolutions = []
+            current_format = None
+            
+            for line in result.stdout.splitlines():
+                # Chercher un nouveau format
+                format_match = re.search(r"Pixel Format: '([^']+)'", line)
+                if format_match:
+                    current_format = format_match.group(1)
+                    continue
+                
+                # Chercher une résolution pour le format actuel
+                res_match = re.search(r"Size: Discrete (\d+)x(\d+)", line)
+                if res_match and current_format:
+                    resolutions.append({
+                        "format": current_format,
+                        "width": int(res_match.group(1)),
+                        "height": int(res_match.group(2))
+                    })
+                    
+            return resolutions
+            
+        except Exception as e:
+            self.logger.error(f"Erreur lors de la récupération des résolutions supportées: {str(e)}")
+            return []
+            
+    def set_resolution(self, width, height, pixel_format=None):
+        """
+        Définit la résolution de la caméra.
+        Retourne True si réussi, False sinon.
+        """
+        try:
+            device = f"/dev/video{self.camera_index}"
+            
+            # Préparer la commande
+            cmd = [self.v4l2_path, "-d", device, "--set-fmt-video"]
+            
+            # Ajouter les dimensions
+            cmd.extend([f"width={width}", f"height={height}"])
+            
+            # Ajouter le format de pixel si spécifié
+            if pixel_format:
+                cmd.append(f"pixelformat={pixel_format}")
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                self.logger.error(f"Erreur lors de la définition de la résolution: {result.stderr}")
+                return False
+                
+            self.logger.info(f"Résolution définie à {width}x{height}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Erreur lors de la définition de la résolution: {str(e)}")
+            return False
+            
+    def set_control(self, control_name, value):
+        """
+        Définit un contrôle spécifique de la caméra.
+        Retourne True si réussi, False sinon.
+        """
+        try:
+            device = f"/dev/video{self.camera_index}"
+            cmd = [self.v4l2_path, "-d", device, "--set-ctrl", f"{control_name}={value}"]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                self.logger.error(f"Erreur lors de la définition du contrôle {control_name}: {result.stderr}")
+                return False
+                
+            self.logger.info(f"Contrôle {control_name} défini à {value}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Erreur lors de la définition du contrôle {control_name}: {str(e)}")
+            return False
