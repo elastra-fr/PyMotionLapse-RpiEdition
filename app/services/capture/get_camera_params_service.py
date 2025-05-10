@@ -43,7 +43,8 @@ class CameraParamsService:
     def _get_current_controls(self, device):
         """Récupère les valeurs actuelles des contrôles de la caméra."""
         try:
-            cmd = [self.v4l2_path, "-d", device, "-C"]
+            # Correction: utiliser --all au lieu de -C
+            cmd = [self.v4l2_path, "-d", device, "--all"]
             result = subprocess.run(cmd, capture_output=True, text=True)
             
             if result.returncode != 0:
@@ -80,7 +81,8 @@ class CameraParamsService:
     def _get_current_resolution(self, device):
         """Récupère la résolution actuelle de la caméra."""
         try:
-            cmd = [self.v4l2_path, "-d", device, "--get-fmt"]
+            # Correction: utiliser --get-fmt-video au lieu de --get-fmt
+            cmd = [self.v4l2_path, "-d", device, "--get-fmt-video"]
             result = subprocess.run(cmd, capture_output=True, text=True)
             
             if result.returncode != 0:
