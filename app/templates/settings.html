@@ -1,174 +1,170 @@
 {% extends "base.html" %}
 
-{% block title %}PyMotionLapse - Paramètres Caméra{% endblock %}
-
-{% block page_title %}Paramétrer la Caméra{% endblock %}
+{% block title %}Paramètres{% endblock %}
 
 {% block content %}
-
-<main class="container mt-4">
-
-<div class="row justify-content-center mb-4">
-    <div class="col-md-8 text-center">
-        <!-- Aperçu caméra -->
-        <div id="preview-container" class="p-3 border rounded">
-            <img id="preview-image" class="img-fluid" alt="Aperçu caméra" style="max-height: 500px;">
+<div class="container my-4">
+    <h1 class="mb-4">Paramètres</h1>
+    
+    <!-- Aperçu de la caméra -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0">Aperçu de la caméra</h4>
         </div>
-        
-        <div class="mt-3 d-flex justify-content-center align-items-center">
-            <label for="refresh-interval" class="form-label me-2 mb-0">Intervalle (secondes):</label>
-            <input type="range" id="refresh-interval" min="1" max="10" value="5" class="form-range" style="width: 200px;">
-            <span id="refresh-value" class="ms-2">5</span>
+        <div class="card-body">
+            <div class="text-center">
+                <img id="preview-image" src="/api/capture/preview" alt="Aperçu de la caméra" class="img-fluid mb-3" style="max-width: 100%;">
+                <div class="form-group mb-3">
+                    <label for="refresh-interval">Intervalle de rafraîchissement: <span id="refresh-value">5</span> secondes</label>
+                    <input type="range" class="form-range" id="refresh-interval" min="1" max="20" value="5">
+                </div>
+            </div>
         </div>
     </div>
-</div>
-
-
-<section class="row">
-
-
-<h2>
-    <i class="fas fa-cog me-2"></i>Paramètres de la Caméra
-</h2>
-
-<div class="card mb-4">
-    <div class="card-header bg-light">
-        <h4 class="mb-0">
-            <i class="fas fa-camera-settings me-2"></i>Paramètres actuels de la caméra
-            <button id="btn-refresh-camera-params" class="btn btn-sm btn-outline-primary float-end">
-                <i class="fas fa-sync-alt me-1"></i>Rafraîchir
+    
+    <!-- Paramètres de la caméra -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Paramètres de la caméra</h4>
+            <button id="btn-refresh-camera-params" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-arrow-clockwise"></i> Rafraîchir
             </button>
-        </h4>
-    </div>
-    <div class="card-body">
-        <div id="camera-params-loading" class="text-center">
-            <div class="spinner-border spinner-border-sm text-secondary" role="status">
-                <span class="visually-hidden">Chargement des paramètres...</span>
+        </div>
+        <div class="card-body">
+            <!-- Chargement -->
+            <div id="camera-params-loading" class="text-center my-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+                <p class="mt-2">Chargement des paramètres...</p>
             </div>
-            <span class="ms-2">Chargement des paramètres...</span>
-        </div>
-        
-        <div id="camera-params-error" class="alert alert-warning d-none">
-            Impossible de charger les paramètres de la caméra.
-        </div>
-        
-        <div id="camera-params-display" class="d-none">
-            <!-- Format et résolution -->
-            <div class="mb-3">
-                <h5>Format et résolution</h5>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-2">
-                            <strong>Format:</strong> <span id="camera-format">-</span>
+            
+            <!-- Erreur -->
+            <div id="camera-params-error" class="alert alert-danger d-none" role="alert">
+                Erreur lors du chargement des paramètres.
+            </div>
+            
+            <!-- Affichage des paramètres -->
+            <div id="camera-params-display" class="d-none">
+                <!-- Information de la caméra -->
+                <div class="mb-3">
+                    <h5>Informations générales</h5>
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Format:</strong>
+                                <span id="camera-format">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-2">
-                            <strong>Résolution:</strong> <span id="camera-resolution">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Résolution:</strong>
+                                <span id="camera-resolution">-</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Contrôles utilisateur -->
-            <div class="mb-3">
-                <h5>Contrôles utilisateur</h5>
-                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Luminosité:</strong>
-                            <span id="param-brightness">-</span>
+                
+                <!-- Contrôles utilisateur -->
+                <div class="mb-3">
+                    <h5>Contrôles utilisateur</h5>
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Luminosité:</strong>
+                                <span id="param-brightness">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Contraste:</strong>
-                            <span id="param-contrast">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Contraste:</strong>
+                                <span id="param-contrast">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Saturation:</strong>
-                            <span id="param-saturation">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Saturation:</strong>
+                                <span id="param-saturation">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Teinte:</strong>
-                            <span id="param-hue">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Teinte:</strong>
+                                <span id="param-hue">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Balance des blancs auto:</strong>
-                            <span id="param-white_balance_automatic">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Balance auto:</strong>
+                                <span id="param-white_balance_automatic">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Gamma:</strong>
-                            <span id="param-gamma">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Gamma:</strong>
+                                <span id="param-gamma">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Gain:</strong>
-                            <span id="param-gain">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Gain:</strong>
+                                <span id="param-gain">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Fréquence:</strong>
-                            <span id="param-power_line_frequency">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Fréquence:</strong>
+                                <span id="param-power_line_frequency">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Température balance:</strong>
-                            <span id="param-white_balance_temperature">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Température balance:</strong>
+                                <span id="param-white_balance_temperature">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Netteté:</strong>
-                            <span id="param-sharpness">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Netteté:</strong>
+                                <span id="param-sharpness">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Compensation rétroéclairage:</strong>
-                            <span id="param-backlight_compensation">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Compensation rétroéclairage:</strong>
+                                <span id="param-backlight_compensation">-</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Contrôles caméra -->
-            <div class="mb-3">
-                <h5>Contrôles caméra</h5>
-                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Auto exposition:</strong>
-                            <span id="param-auto_exposure">-</span>
+                
+                <!-- Contrôles caméra -->
+                <div class="mb-3">
+                    <h5>Contrôles caméra</h5>
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Auto exposition:</strong>
+                                <span id="param-auto_exposure">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Temps d'exposition:</strong>
-                            <span id="param-exposure_time_absolute">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Temps d'exposition:</strong>
+                                <span id="param-exposure_time_absolute">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Focus absolu:</strong>
-                            <span id="param-focus_absolute">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Focus absolu:</strong>
+                                <span id="param-focus_absolute">-</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col mb-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>Auto focus:</strong>
-                            <span id="param-focus_automatic_continuous">-</span>
+                        <div class="col mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Auto focus:</strong>
+                                <span id="param-focus_automatic_continuous">-</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -176,23 +172,50 @@
         </div>
     </div>
 </div>
-
-
-
-
-
-
-</section>
-
-
-
-</main>
-
-
-
-
 {% endblock %}
 
 {% block scripts %}
-<!-- Scripts spécifiques à cette page -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page des paramètres caméra chargée');
+    
+    // Ajouter une section de débogage pour voir quels paramètres sont manquants
+    const originalLoadCameraParams = window.loadCameraParams;
+    
+    window.loadCameraParams = function() {
+        fetch('/api/settings/params')
+            .then(response => response.json())
+            .then(data => {
+                let matchedParams = 0;
+                let missingParams = [];
+                
+                if (data.controls) {
+                    for (const [name, info] of Object.entries(data.controls)) {
+                        const paramElement = document.getElementById(`param-${name}`);
+                        if (paramElement) {
+                            matchedParams++;
+                        } else {
+                            missingParams.push(name);
+                        }
+                    }
+                    
+                    console.log(`Paramètres trouvés: ${matchedParams} sur ${Object.keys(data.controls).length}`);
+                    if (missingParams.length > 0) {
+                        console.log('Paramètres manquants:', missingParams);
+                    } else {
+                        console.log('Tous les paramètres sont correctement mappés!');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erreur de débogage:', error);
+            });
+        
+        // Appeler la fonction originale
+        if (originalLoadCameraParams) {
+            originalLoadCameraParams();
+        }
+    };
+});
+</script>
 {% endblock %}
