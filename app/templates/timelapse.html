@@ -1,164 +1,146 @@
 {% extends "base.html" %}
 
-{% block title %}Time-lapse - PyMotionLapse{% endblock %}
-
-{% block page_title %}Projets Time-lapse{% endblock %}
+{% block title %}Time-lapse{% endblock %}
 
 {% block content %}
-<div class="container my-4">
+<div class="container py-4">
+    <h1 class="mb-4"><i class="fas fa-clock me-2"></i>Time-lapse</h1>
+    
     <!-- Formulaire de création de projet -->
     <div id="new-project-form" class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h3 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Nouveau projet</h3>
+        <div class="card-header">
+            <h3><i class="fas fa-plus-circle me-2"></i>Nouveau projet time-lapse</h3>
         </div>
         <div class="card-body">
-            <form id="create-project-form">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="project-name" class="form-label">Nom du projet</label>
-                        <input type="text" class="form-control" id="project-name" name="name" required
-                               placeholder="Sunset Timelapse">
+            <form>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label">Nom du projet</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="project-duration" class="form-label">Durée (minutes)</label>
-                        <input type="number" class="form-control" id="project-duration" name="duration_minutes" required
-                               min="1" max="1440" value="60">
-                        <div class="form-text">Durée totale de la capture en minutes</div>
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="project-interval" class="form-label">Intervalle (secondes)</label>
-                        <input type="number" class="form-control" id="project-interval" name="interval_seconds" required
-                               min="1" max="3600" value="10">
-                        <div class="form-text">Temps entre chaque capture</div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="project-fps" class="form-label">Images par seconde (FPS)</label>
-                        <input type="number" class="form-control" id="project-fps" name="fps" required
-                               min="1" max="60" value="30">
-                        <div class="form-text">FPS de la vidéo finale</div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="project-rotation" class="form-label">Rotation</label>
-                        <select class="form-select" id="project-rotation" name="rotation">
+                    <div class="col-md-6">
+                        <label for="rotation" class="form-label">Rotation de la caméra</label>
+                        <select class="form-select" id="rotation" name="rotation">
                             <option value="0" selected>0° (Pas de rotation)</option>
                             <option value="90">90° (Sens horaire)</option>
                             <option value="180">180° (Retourné)</option>
                             <option value="270">270° (Sens anti-horaire)</option>
                         </select>
-                        <div class="form-text">Rotation appliquée aux images</div>
                     </div>
                 </div>
                 
-                <div class="text-end">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-1"></i>Créer le projet
-                    </button>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="duration_minutes" class="form-label">Durée totale (minutes)</label>
+                        <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" min="1" value="60" required>
+                        <div class="form-text">Durée totale du time-lapse</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="interval_seconds" class="form-label">Intervalle (secondes)</label>
+                        <input type="number" class="form-control" id="interval_seconds" name="interval_seconds" min="1" value="10" required>
+                        <div class="form-text">Temps entre chaque capture</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="fps" class="form-label">Images par seconde (FPS)</label>
+                        <input type="number" class="form-control" id="fps" name="fps" min="1" max="60" value="30" required>
+                        <div class="form-text">FPS pour la vidéo finale</div>
+                    </div>
                 </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Créer le projet
+                </button>
             </form>
         </div>
     </div>
     
-    <!-- Détails du projet (masqué par défaut) -->
-    <div id="project-details" class="d-none"></div>
+    <!-- Détails du projet (initialement masqué) -->
+    <div id="project-details" class="d-none">
+        <!-- Contenu à remplir dynamiquement par JavaScript -->
+    </div>
     
-    <!-- Liste des projets existants -->
+    <!-- Liste des projets -->
     <div class="card">
-        <div class="card-header bg-info text-white">
-            <h3 class="mb-0"><i class="fas fa-list me-2"></i>Projets existants</h3>
+        <div class="card-header">
+            <h3><i class="fas fa-list me-2"></i>Projets existants</h3>
         </div>
         <div class="card-body">
-            <div id="projects-list" class="projects-container">
-                <!-- La liste des projets sera chargée dynamiquement ici -->
-                <div class="text-center my-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Chargement...</span>
+            <div id="projects-list">
+                <!-- Contenu à remplir dynamiquement par JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour l'édition d'un projet -->
+<div class="modal fade" id="edit-project-form" tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProjectModalLabel">Modifier le projet</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert-container mb-3"></div>
+                <form>
+                    <div class="mb-3">
+                        <label for="edit-name" class="form-label">Nom du projet</label>
+                        <input type="text" class="form-control" id="edit-name" name="name" required>
                     </div>
-                    <p class="mt-2">Chargement des projets...</p>
-                </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit-rotation" class="form-label">Rotation de la caméra</label>
+                        <select class="form-select" id="edit-rotation" name="rotation">
+                            <option value="0">0° (Pas de rotation)</option>
+                            <option value="90">90° (Sens horaire)</option>
+                            <option value="180">180° (Retourné)</option>
+                            <option value="270">270° (Sens anti-horaire)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit-duration_minutes" class="form-label">Durée totale (minutes)</label>
+                        <input type="number" class="form-control" id="edit-duration_minutes" name="duration_minutes" min="1" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit-interval_seconds" class="form-label">Intervalle (secondes)</label>
+                        <input type="number" class="form-control" id="edit-interval_seconds" name="interval_seconds" min="1" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit-fps" class="form-label">Images par seconde (FPS)</label>
+                        <input type="number" class="form-control" id="edit-fps" name="fps" min="1" max="60" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-primary" form="edit-project-form">
+                    <i class="fas fa-save me-1"></i>Enregistrer
+                </button>
             </div>
         </div>
     </div>
-    
-    <!-- Modal de confirmation de suppression -->
-    <div class="modal fade" id="delete-project-modal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="deleteModalLabel">Confirmer la suppression</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Êtes-vous sûr de vouloir supprimer le projet <strong id="delete-project-name"></strong> ?</p>
-                    <p class="text-danger">Cette action est irréversible et supprimera toutes les captures associées.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="button" id="confirm-delete-btn" class="btn btn-danger">
-                        <i class="fas fa-trash me-1"></i>Supprimer définitivement
-                    </button>
-                </div>
+</div>
+
+<!-- Modal pour la confirmation de suppression -->
+<div class="modal fade" id="delete-project-modal" tabindex="-1" aria-labelledby="deleteProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteProjectModalLabel">Confirmation de suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
-        </div>
-    </div>
-    
-    <!-- Modal d'édition de projet -->
-    <div class="modal fade" id="edit-project-form" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="editModalLabel">Modifier le projet</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="update-project-form" data-id="">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="edit-project-name" class="form-label">Nom du projet</label>
-                                <input type="text" class="form-control" id="edit-project-name" name="name" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="edit-project-duration" class="form-label">Durée (minutes)</label>
-                                <input type="number" class="form-control" id="edit-project-duration" name="duration_minutes" required
-                                       min="1" max="1440">
-                                <div class="form-text">Durée totale de la capture en minutes</div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="edit-project-interval" class="form-label">Intervalle (secondes)</label>
-                                <input type="number" class="form-control" id="edit-project-interval" name="interval_seconds" required
-                                       min="1" max="3600">
-                                <div class="form-text">Temps entre chaque capture</div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="edit-project-fps" class="form-label">Images par seconde (FPS)</label>
-                                <input type="number" class="form-control" id="edit-project-fps" name="fps" required
-                                       min="1" max="60">
-                                <div class="form-text">FPS de la vidéo finale</div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="edit-project-rotation" class="form-label">Rotation</label>
-                                <select class="form-select" id="edit-project-rotation" name="rotation">
-                                    <option value="0">0° (Pas de rotation)</option>
-                                    <option value="90">90° (Sens horaire)</option>
-                                    <option value="180">180° (Retourné)</option>
-                                    <option value="270">270° (Sens anti-horaire)</option>
-                                </select>
-                                <div class="form-text">Rotation appliquée aux images</div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" form="update-project-form" class="btn btn-primary">
-                        <i class="fas fa-save me-1"></i>Enregistrer les modifications
-                    </button>
-                </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le projet <strong id="delete-project-name"></strong> ?</p>
+                <p class="text-danger">Cette action est irréversible et supprimera toutes les captures associées.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn">
+                    <i class="fas fa-trash me-1"></i>Supprimer définitivement
+                </button>
             </div>
         </div>
     </div>
