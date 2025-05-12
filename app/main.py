@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-from app.routes import pages, capture, settings  # Add settings import here
+from app.routes import pages, capture, settings, timelapse  # Add settings import here
 
 
 app = FastAPI()
@@ -16,3 +16,6 @@ app.include_router(pages.router, tags=["pages"])
 app.include_router(capture.router, prefix="/api/capture", tags=["capture"])
 # Routeur vers l'API de paramètres
 app.include_router(settings.router, prefix="/api/settings", tags=["settings"]) 
+
+# Routeur vers l'API de time-lapse
+app.include_router(timelapse.router, tags=["timelapse"])

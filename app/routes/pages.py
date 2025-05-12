@@ -18,3 +18,11 @@ async def settings(request: Request):
         "settings.html", 
         {"request": request, "active_page": "settings"}
     )
+
+
+@router.get("/timelapse", response_class=HTMLResponse)
+async def settings(request: Request):
+    return templates.TemplateResponse(
+        "timelapse.html", 
+        {"request": request, "active_page": "timelapse"}
+    )
