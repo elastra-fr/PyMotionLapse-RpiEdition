@@ -48,7 +48,9 @@ class TimelapseCapture:
             
             # Appliquer la rotation si nécessaire
             if project.rotation != 0:
-                self._rotate_image(output_path, project.rotation)
+                rotation_success = self._rotate_image(output_path, project.rotation)
+                if not rotation_success:
+                    self.logger.warning(f"Échec de la rotation pour la capture {sequence_num}")
             
             # Mettre à jour le compteur de captures
             project.captures_count = sequence_num
@@ -71,15 +73,40 @@ class TimelapseCapture:
             return True  # Pas de rotation nécessaire
         
         try:
-            # Utiliser ImageMagick pour la rotation
-            cmd = ["convert", image_path, "-rotate", str(rotation), image_path]
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            # Vérifier d'abord si imagemagick est installé
+            try:
+                # Tester si convert est disponible
+                subprocess.run(["convert", "--version"], capture_output=True, check=True)
+                imagemagick_available = True
+            except (subprocess.SubprocessError, FileNotFoundError):
+                self.logger.warning("ImageMagick n'est pas disponible, utilisation de la rotation Python")
+                imagemagick_available = False
             
-            if result.returncode != 0:
-                self.logger.error(f"Erreur lors de la rotation de l'image: {result.stderr}")
-                return False
-            
-            return True
+            if imagemagick_available:
+                # Utiliser ImageMagick pour la rotation
+                cmd = ["convert", image_path, "-rotate", str(rotation), image_path]
+                result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                self.logger.info(f"Image rotée avec ImageMagick: {rotation}°")
+                return True
+            else:
+                # Utiliser PIL comme alternative
+                try:
+                    from PIL import Image
+                    img = Image.open(image_path)
+                    # PIL rotation: 90=ROTATE_90, 180=ROTATE_180, 270=ROTATE_270
+                    if rotation == 90:
+                        img = img.transpose(Image.ROTATE_90)
+                    elif rotation == 180:
+                        img = img.transpose(Image.ROTATE_180)
+                    elif rotation == 270:
+                        img = img.transpose(Image.ROTATE_270)
+                    
+                    img.save(image_path)
+                    self.logger.info(f"Image rotée avec PIL: {rotation}°")
+                    return True
+                except Exception as e:
+                    self.logger.error(f"Échec de la rotation avec PIL: {str(e)}")
+                    return False
         except Exception as e:
             self.logger.error(f"Erreur lors de la rotation de l'image: {str(e)}")
             return False
@@ -107,7 +134,9 @@ class TimelapseCapture:
             
             # Appliquer la rotation si nécessaire
             if project.rotation != 0:
-                self._rotate_image(preview_path, project.rotation)
+                rotation_success = self._rotate_image(preview_path, project.rotation)
+                if not rotation_success:
+                    self.logger.warning(f"Échec de la rotation pour l'aperçu")
             
             return preview_path
             

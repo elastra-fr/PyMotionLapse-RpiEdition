@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentProjectId = null;
     let refreshTimer = null;
     let isPageVisible = true;
+    let autoCaptureStatusTimer = null;
+    let isAutoCaptureActive = false;
     
     // Paramètres initiaux
     const initialRefreshSeconds = 5;
@@ -187,11 +189,96 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(project => {
                 renderProjectDetails(project);
                 startPreviewRefresh(projectId);
+                checkAutoCaptureStatus(projectId);
             })
             .catch(error => {
                 console.error('Erreur:', error);
                 showError(projectDetails, 'Impossible de charger les détails du projet: ' + error.message);
             });
+    }
+    
+    // Fonction pour vérifier l'état de la capture automatique
+    function checkAutoCaptureStatus(projectId) {
+        // Arrêter le timer précédent
+        if (autoCaptureStatusTimer) {
+            clearInterval(autoCaptureStatusTimer);
+            autoCaptureStatusTimer = null;
+        }
+        
+        // Fonction pour récupérer l'état
+        function fetchStatus() {
+            fetch(`/api/timelapse/projects/${projectId}/auto-capture/status`)
+                .then(response => response.json())
+                .then(data => {
+                    isAutoCaptureActive = data.active;
+                    updateAutoCaptureUI(data);
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la vérification de la capture auto:', error);
+                });
+        }
+        
+        // Vérifier l'état immédiatement
+        fetchStatus();
+        
+        // Configurer un timer pour vérifier périodiquement
+        autoCaptureStatusTimer = setInterval(fetchStatus, 5000);
+    }
+    
+    // Fonction pour mettre à jour l'interface en fonction de l'état de la capture auto
+    function updateAutoCaptureUI(status) {
+        const autoCaptureBtns = document.querySelector('.auto-capture-buttons');
+        if (!autoCaptureBtns) return;
+        
+        const startBtn = autoCaptureBtns.querySelector('.start-auto-capture');
+        const stopBtn = autoCaptureBtns.querySelector('.stop-auto-capture');
+        const statusText = autoCaptureBtns.querySelector('.auto-capture-status');
+        
+        if (status.active) {
+            // Capture active
+            startBtn.classList.add('d-none');
+            stopBtn.classList.remove('d-none');
+            
+            // Mettre à jour le texte de statut
+            const nextCapture = status.seconds_to_next > 0 
+                ? `Prochaine capture dans ${status.seconds_to_next} secondes` 
+                : "Capture en cours...";
+            
+            statusText.innerHTML = `
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-camera-retro me-2"></i>
+                    Capture automatique active. ${nextCapture}
+                </div>
+            `;
+            
+            // Désactiver le bouton de capture manuelle
+            const captureBtn = document.getElementById('capture-button');
+            if (captureBtn) captureBtn.disabled = true;
+            
+            // Désactiver le bouton d'édition
+            const editBtn = document.getElementById('edit-project-btn');
+            if (editBtn) editBtn.disabled = true;
+        } else {
+            // Capture inactive
+            startBtn.classList.remove('d-none');
+            stopBtn.classList.add('d-none');
+            
+            // Réinitialiser le texte de statut
+            statusText.innerHTML = `
+                <div class="alert alert-secondary mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Capture automatique inactive. Cliquez sur "Démarrer" pour lancer la séquence.
+                </div>
+            `;
+            
+            // Réactiver le bouton de capture manuelle
+            const captureBtn = document.getElementById('capture-button');
+            if (captureBtn) captureBtn.disabled = false;
+            
+            // Réactiver le bouton d'édition
+            const editBtn = document.getElementById('edit-project-btn');
+            if (editBtn) editBtn.disabled = false;
+        }
     }
     
     // Fonction pour afficher les détails d'un projet
@@ -217,6 +304,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Boutons de capture automatique -->
+                    <div class="auto-capture-buttons mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h4 class="mb-0">Capture automatique</h4>
+                            <div>
+                                <button class="btn btn-success start-auto-capture">
+                                    <i class="fas fa-play me-1"></i>Démarrer
+                                </button>
+                                <button class="btn btn-danger stop-auto-capture d-none">
+                                    <i class="fas fa-stop me-1"></i>Arrêter
+                                </button>
+                            </div>
+                        </div>
+                        <div class="auto-capture-status">
+                            <div class="alert alert-secondary mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Vérification de l'état de la capture automatique...
+                            </div>
+                        </div>
+                    </div>
+                
                     <div class="row">
                         <!-- Aperçu de la caméra -->
                         <div class="col-md-6">
@@ -312,6 +420,12 @@ document.addEventListener('DOMContentLoaded', function() {
             hideElement(projectDetails);
             showElement(newProjectForm);
             currentProjectId = null;
+            
+            // Arrêter la vérification de la capture auto
+            if (autoCaptureStatusTimer) {
+                clearInterval(autoCaptureStatusTimer);
+                autoCaptureStatusTimer = null;
+            }
         });
         
         document.getElementById('edit-project-btn').addEventListener('click', function() {
@@ -330,6 +444,131 @@ document.addEventListener('DOMContentLoaded', function() {
             refreshValueDisplay.textContent = refreshInterval;
             restartPreviewRefresh(project.id, refreshInterval);
         });
+        
+        // Écouteurs pour les boutons de capture automatique
+        const startAutoBtn = document.querySelector('.start-auto-capture');
+        const stopAutoBtn = document.querySelector('.stop-auto-capture');
+        
+        startAutoBtn.addEventListener('click', function() {
+            startAutoCapture(project.id);
+        });
+        
+        stopAutoBtn.addEventListener('click', function() {
+            stopAutoCapture(project.id);
+        });
+    }
+    
+    // Fonction pour démarrer la capture automatique
+    function startAutoCapture(projectId) {
+        if (!projectId) return;
+        
+        const startBtn = document.querySelector('.start-auto-capture');
+        const statusText = document.querySelector('.auto-capture-status');
+        
+        // Désactiver le bouton pendant le démarrage
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Démarrage...';
+        
+        fetch(`/api/timelapse/projects/${projectId}/auto-capture/start`, {
+            method: 'POST'
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Échec du démarrage de la capture automatique');
+            return response.json();
+        })
+        .then(data => {
+            // Mettre à jour l'UI
+            checkAutoCaptureStatus(projectId);
+            
+            // Afficher une notification de succès
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show';
+            alert.innerHTML = `
+                <strong>Capture automatique démarrée!</strong> ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+            `;
+            
+            document.querySelector('.container').prepend(alert);
+            
+            // Supprimer l'alerte après quelques secondes
+            setTimeout(() => {
+                alert.classList.remove('show');
+                setTimeout(() => alert.remove(), 500);
+            }, 3000);
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            
+            // Réinitialiser l'UI
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<i class="fas fa-play me-1"></i>Démarrer';
+            
+            // Afficher une notification d'erreur
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger alert-dismissible fade show';
+            alert.innerHTML = `
+                <strong>Erreur!</strong> Impossible de démarrer la capture automatique: ${error.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+            `;
+            
+            document.querySelector('.container').prepend(alert);
+        });
+    }
+    
+    // Fonction pour arrêter la capture automatique
+    function stopAutoCapture(projectId) {
+        if (!projectId) return;
+        
+        const stopBtn = document.querySelector('.stop-auto-capture');
+        
+        // Désactiver le bouton pendant l'arrêt
+        stopBtn.disabled = true;
+        stopBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Arrêt...';
+        
+        fetch(`/api/timelapse/projects/${projectId}/auto-capture/stop`, {
+            method: 'POST'
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Échec de l\'arrêt de la capture automatique');
+            return response.json();
+        })
+        .then(data => {
+            // Mettre à jour l'UI
+            checkAutoCaptureStatus(projectId);
+            
+            // Afficher une notification de succès
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show';
+            alert.innerHTML = `
+                <strong>Capture automatique arrêtée!</strong> ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+            `;
+            
+            document.querySelector('.container').prepend(alert);
+            
+            // Supprimer l'alerte après quelques secondes
+            setTimeout(() => {
+                alert.classList.remove('show');
+                setTimeout(() => alert.remove(), 500);
+            }, 3000);
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            
+            // Réinitialiser l'UI
+            stopBtn.disabled = false;
+            stopBtn.innerHTML = '<i class="fas fa-stop me-1"></i>Arrêter';
+            
+            // Afficher une notification d'erreur
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger alert-dismissible fade show';
+            alert.innerHTML = `
+                <strong>Erreur!</strong> Impossible d'arrêter la capture automatique: ${error.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+            `;
+            
+            document.querySelector('.container').prepend(alert);
+        });
     }
     
     // Fonction pour configurer le formulaire d'édition
@@ -340,8 +579,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = editProjectForm.querySelector('form');
         form.dataset.id = project.id;
         form.elements.name.value = project.name;
-        form.elements.duration.value = project.duration_minutes;
-        form.elements.interval.value = project.interval_seconds;
+        form.elements.duration_minutes.value = project.duration_minutes;
+        form.elements.interval_seconds.value = project.interval_seconds;
         form.elements.fps.value = project.fps;
         
         // Sélectionner la bonne option de rotation
@@ -465,6 +704,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (refreshIntervalInput) {
                 restartPreviewRefresh(currentProjectId, parseInt(refreshIntervalInput.value));
             }
+            
+            // Vérifier l'état de la capture auto
+            checkAutoCaptureStatus(currentProjectId);
         } else {
             // Arrêter le timer lorsque la page n'est pas visible
             stopPreviewRefresh();
@@ -560,11 +802,21 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Erreur:', error);
                 
+                // Récupérer le message d'erreur du serveur si possible
+                let errorMessage = error.message;
+                if (error.response && error.response.json) {
+                    error.response.json().then(data => {
+                        if (data.detail) {
+                            errorMessage = data.detail;
+                        }
+                    });
+                }
+                
                 // Afficher une notification d'erreur
                 const alert = document.createElement('div');
                 alert.className = 'alert alert-danger alert-dismissible fade show';
                 alert.innerHTML = `
-                    <strong>Erreur!</strong> Impossible de mettre à jour le projet: ${error.message}
+                    <strong>Erreur!</strong> Impossible de mettre à jour le projet: ${errorMessage}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
                 `;
                 
@@ -606,6 +858,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     hideElement(projectDetails);
                     showElement(newProjectForm);
                     currentProjectId = null;
+                    
+                    // Arrêter la vérification de la capture auto
+                    if (autoCaptureStatusTimer) {
+                        clearInterval(autoCaptureStatusTimer);
+                        autoCaptureStatusTimer = null;
+                    }
                 }
                 
                 // Recharger la liste des projets
