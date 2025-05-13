@@ -12,7 +12,6 @@ def capture_image(v4l2_path, device, output_path):
             v4l2_path,
             "--device", device,
             "--set-fmt-video=width=1920,height=1080,pixelformat=MJPG",
-            "--set-ctrl=jpeg_quality=100",
             "--stream-mmap",
             "--stream-count=1",
             "--stream-to=" + output_path
