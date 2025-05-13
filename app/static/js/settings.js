@@ -214,3 +214,23 @@ document.addEventListener('DOMContentLoaded', function() {
     refreshPreview();
     restartRefreshTimer();
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+
+let rotation = 0;
+const previewImage=document.getElementById('preview-image');
+const btnRotation = document.getElementById('btn-rotation');
+
+    if (btnRotation && previewImage) {
+        btnRotation.addEventListener('click', function(e) {
+            e.preventDefault();
+            rotation = (rotation + 90) % 360;
+            previewImage.style.transform = `rotate(${rotation}deg)`;
+        });
+    }
+
+
+
+
+
+});
