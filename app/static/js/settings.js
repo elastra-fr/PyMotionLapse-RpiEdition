@@ -218,19 +218,32 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
 
 let rotation = 0;
-const previewImage=document.getElementById('preview-image');
+const previewImage = document.getElementById('preview-image');
 const btnRotation = document.getElementById('btn-rotation');
 
-    if (btnRotation && previewImage) {
-        btnRotation.addEventListener('click', function(e) {
-            e.preventDefault();
-            rotation = (rotation + 90) % 360;
-            previewImage.style.transform = `rotate(${rotation}deg)`;
-        });
+// Charger la rotation depuis le localStorage si présente
+if (localStorage.getItem('previewRotation')) {
+    rotation = parseInt(localStorage.getItem('previewRotation'), 10) || 0;
+    if (previewImage) {
+        previewImage.style.transform = `rotate(${rotation}deg)`;
     }
+}
 
+if (btnRotation && previewImage) {
+    btnRotation.addEventListener('click', function(e) {
+        e.preventDefault();
+        rotation = (rotation + 90) % 360;
+        previewImage.style.transform = `rotate(${rotation}deg)`;
+        localStorage.setItem('previewRotation', rotation);
+    });
+}
 
-
+// Quand l'image est rechargée, réappliquer la rotation
+if (previewImage) {
+    previewImage.addEventListener('load', function() {
+        previewImage.style.transform = `rotate(${rotation}deg)`;
+    });
+}
 
 
 });
