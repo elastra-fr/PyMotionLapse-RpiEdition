@@ -159,22 +159,6 @@ async def capture_for_project(project_id: str):
         logger.exception(f"Erreur lors de la capture pour le projet {project_id}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/api/timelapse/projects/{project_id}/preview", response_class=Response)
-async def get_project_preview(project_id: str):
-    """Récupère un aperçu pour un projet time-lapse."""
-    try:
-        preview_path = capture_service.get_preview_with_rotation(project_id)
-        
-        if not preview_path or not os.path.exists(preview_path):
-            raise HTTPException(status_code=500, detail="Échec de la génération de l'aperçu")
-        
-        return FileResponse(preview_path, media_type="image/jpeg")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception(f"Erreur lors de la génération de l'aperçu pour le projet {project_id}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 # ROUTES POUR LA CAPTURE AUTOMATIQUE
 @router.post("/api/timelapse/projects/{project_id}/auto-capture/start", response_model=dict)
 async def start_auto_capture(project_id: str):

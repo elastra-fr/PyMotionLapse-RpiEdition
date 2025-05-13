@@ -5,25 +5,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const editProjectForm = document.getElementById('edit-project-form');
     const projectDetails = document.getElementById('project-details');
     const deleteModal = new bootstrap.Modal(document.getElementById('delete-project-modal'));
-    
+
     // Variables d'état
     let currentProjectId = null;
-    let previewTimer = null;
     let statusTimer = null;
     let isPageVisible = true;
-    
+
     // Paramètres
     const defaultRefreshSeconds = 5;
-    
+
     // Fonctions utilitaires
     function showElement(element) {
         if (element) element.classList.remove('d-none');
     }
-    
+
     function hideElement(element) {
         if (element) element.classList.add('d-none');
     }
-    
+
     function showLoading(container) {
         if (!container) return;
         container.innerHTML = `
@@ -35,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
     }
-    
+
     function showError(container, message) {
         if (!container) return;
         container.innerHTML = `
@@ -45,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
     }
-    
+
     function formatDuration(seconds) {
         seconds = Math.round(seconds);
         if (seconds < 60) {
@@ -60,11 +59,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return `${hours} h ${remainingMinutes} min`;
         }
     }
-    
+
     // Fonction pour charger la liste des projets
     function loadProjects() {
         showLoading(projectsList);
-        
+
         fetch('/api/timelapse/projects')
             .then(response => {
                 if (!response.ok) throw new Error('Impossible de récupérer les projets');
@@ -78,13 +77,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 showError(projectsList, 'Impossible de charger les projets: ' + error.message);
             });
     }
-    
+
     // Fonction pour afficher la liste des projets
     function renderProjectsList(projects) {
         if (!projectsList) return;
-        
+
         projectsList.innerHTML = '';
-        
+
         if (projects.length === 0) {
             projectsList.innerHTML = `
                 <div class="text-center my-5">
@@ -95,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             return;
         }
-        
+
         projects.forEach(project => {
             const projectItem = document.createElement('div');
             projectItem.className = 'card mb-3';
@@ -128,35 +127,35 @@ document.addEventListener('DOMContentLoaded', function() {
                     </button>
                 </div>
             `;
-            
+
             projectItem.querySelector('.load-project').addEventListener('click', function() {
                 loadProjectDetails(this.dataset.id);
             });
-            
+
             projectItem.querySelector('.delete-project').addEventListener('click', function() {
                 const projectId = this.dataset.id;
                 const projectName = this.dataset.name;
-                
+
                 document.getElementById('delete-project-name').textContent = projectName;
                 document.getElementById('confirm-delete-btn').dataset.id = projectId;
-                
+
                 deleteModal.show();
             });
-            
+
             projectsList.appendChild(projectItem);
         });
     }
-    
+
     // Fonction pour charger les détails d'un projet
     function loadProjectDetails(projectId) {
         if (!projectId) return;
-        
+
         currentProjectId = projectId;
         showLoading(projectDetails);
-        
+
         showElement(projectDetails);
         hideElement(newProjectForm);
-        
+
         fetch(`/api/timelapse/projects/${projectId}`)
             .then(response => {
                 if (!response.ok) throw new Error('Impossible de récupérer les détails du projet');
@@ -164,7 +163,6 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(project => {
                 renderProjectDetails(project);
-                startPreviewRefresh(projectId);
                 startStatusRefresh(projectId);
             })
             .catch(error => {
@@ -172,15 +170,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 showError(projectDetails, 'Impossible de charger les détails du projet: ' + error.message);
             });
     }
-    
+
     // Fonction pour afficher les détails d'un projet
     function renderProjectDetails(project) {
         if (!projectDetails) return;
-        
+
         // Calculer les informations dérivées
         const totalCaptures = project.total_captures;
         const videoDuration = formatDuration(project.video_duration_seconds);
-        
+
         projectDetails.innerHTML = `
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -225,32 +223,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 
                     <div class="row">
-                        <!-- Aperçu de la caméra -->
-                        <div class="col-md-6">
-                            <div class="card mb-3">
-                                <div class="card-header">
-                                    <h5 class="mb-0"><i class="fas fa-camera me-2"></i>Aperçu de la caméra</h5>
-                                </div>
-                                <div class="card-body text-center">
-                                    <div class="position-relative">
-                                        <img id="preview-image" src="/api/timelapse/projects/${project.id}/preview" 
-                                             alt="Aperçu" class="img-fluid mb-2" 
-                                             style="max-height: 300px; width: auto;">
-                                        <div class="position-absolute top-0 end-0 m-2">
-                                            <div class="form-group">
-                                                <label for="refresh-interval">Rafraîchir: <span id="refresh-value">${defaultRefreshSeconds}</span>s</label>
-                                                <input type="range" class="form-range" id="refresh-interval" 
-                                                       min="1" max="20" value="${defaultRefreshSeconds}">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button id="capture-button" class="btn btn-success mt-2">
-                                        <i class="fas fa-camera me-1"></i>Capturer manuellement
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <!-- Informations du projet -->
                         <div class="col-md-6">
                             <div class="card mb-3">
@@ -290,7 +262,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                     </ul>
                                 </div>
                             </div>
-                            
                             <!-- Progression -->
                             <div class="card">
                                 <div class="card-header">
@@ -312,46 +283,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `;
-        
+
         // Ajouter les écouteurs d'événements
         document.getElementById('back-to-list-btn').addEventListener('click', function() {
-            stopPreviewRefresh();
             stopStatusRefresh();
             hideElement(projectDetails);
             showElement(newProjectForm);
             currentProjectId = null;
         });
-        
+
         document.getElementById('edit-project-btn').addEventListener('click', function() {
             setupEditForm(project);
         });
-        
-        document.getElementById('capture-button').addEventListener('click', function() {
-            captureImage(project.id);
-        });
-        
-        const refreshIntervalInput = document.getElementById('refresh-interval');
-        const refreshValueDisplay = document.getElementById('refresh-value');
-        
-        refreshIntervalInput.addEventListener('input', function() {
-            const refreshInterval = parseInt(this.value);
-            refreshValueDisplay.textContent = refreshInterval;
-            restartPreviewRefresh(project.id, refreshInterval);
-        });
-        
+
         // Écouteurs pour les boutons de capture automatique
         document.getElementById('start-auto-capture').addEventListener('click', function() {
             startAutoCapture(project.id);
         });
-        
+
         document.getElementById('stop-auto-capture').addEventListener('click', function() {
             stopAutoCapture(project.id);
         });
-        
+
         // Vérifier l'état initial de la capture automatique
         checkAutoCaptureStatus(project.id);
     }
-    
+
     // Fonction pour vérifier l'état de la capture automatique
     function checkAutoCaptureStatus(projectId) {
         fetch(`/api/timelapse/projects/${projectId}/auto-capture/status`)
@@ -372,29 +329,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
     }
-    
+
     // Fonction pour mettre à jour l'interface utilisateur en fonction de l'état de la capture auto
     function updateAutoCaptureUI(status) {
         const statusContainer = document.getElementById('auto-capture-status');
         const startBtn = document.getElementById('start-auto-capture');
         const stopBtn = document.getElementById('stop-auto-capture');
-        const captureBtn = document.getElementById('capture-button');
         const editBtn = document.getElementById('edit-project-btn');
-        
+
         if (!statusContainer || !startBtn || !stopBtn) return;
-        
+
         if (status.active) {
             // Capture active
             startBtn.classList.add('d-none');
             stopBtn.classList.remove('d-none');
-            
-            if (captureBtn) captureBtn.disabled = true;
+
             if (editBtn) editBtn.disabled = true;
-            
+
             const nextCapture = status.seconds_to_next > 0 
                 ? `Prochaine capture dans <strong>${status.seconds_to_next} secondes</strong>` 
                 : "Capture en cours...";
-            
+
             statusContainer.innerHTML = `
                 <div class="alert alert-success mb-0">
                     <i class="fas fa-cog fa-spin me-2"></i>
@@ -410,10 +365,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Capture inactive
             startBtn.classList.remove('d-none');
             stopBtn.classList.add('d-none');
-            
-            if (captureBtn) captureBtn.disabled = false;
+
             if (editBtn) editBtn.disabled = false;
-            
+
             statusContainer.innerHTML = `
                 <div class="alert alert-secondary mb-0">
                     <i class="fas fa-info-circle me-2"></i>
@@ -422,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
     }
-    
+
     // Fonction pour démarrer la capture automatique
     function startAutoCapture(projectId) {
         const startBtn = document.getElementById('start-auto-capture');
@@ -430,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
             startBtn.disabled = true;
             startBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Démarrage...';
         }
-        
+
         fetch(`/api/timelapse/projects/${projectId}/auto-capture/start`, {
             method: 'POST'
         })
@@ -449,14 +403,14 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error('Erreur:', error);
             showNotification('danger', 'Erreur', error.message);
-            
+
             if (startBtn) {
                 startBtn.disabled = false;
                 startBtn.innerHTML = '<i class="fas fa-play me-1"></i>Démarrer la capture automatique';
             }
         });
     }
-    
+
     // Fonction pour arrêter la capture automatique
     function stopAutoCapture(projectId) {
         const stopBtn = document.getElementById('stop-auto-capture');
@@ -464,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function() {
             stopBtn.disabled = true;
             stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Arrêt...';
         }
-        
+
         fetch(`/api/timelapse/projects/${projectId}/auto-capture/stop`, {
             method: 'POST'
         })
@@ -483,24 +437,24 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error('Erreur:', error);
             showNotification('danger', 'Erreur', error.message);
-            
+
             if (stopBtn) {
                 stopBtn.disabled = false;
                 stopBtn.innerHTML = '<i class="fas fa-stop me-1"></i>Arrêter la capture automatique';
             }
         });
     }
-    
+
     // Fonction pour démarrer le rafraîchissement du statut
     function startStatusRefresh(projectId, interval = 2) {
         stopStatusRefresh();
-        
+
         statusTimer = setInterval(function() {
             if (!isPageVisible || !currentProjectId) return;
             checkAutoCaptureStatus(projectId);
         }, interval * 1000);
     }
-    
+
     // Fonction pour arrêter le rafraîchissement du statut
     function stopStatusRefresh() {
         if (statusTimer) {
@@ -508,91 +462,18 @@ document.addEventListener('DOMContentLoaded', function() {
             statusTimer = null;
         }
     }
-    
-    // Fonction pour démarrer le rafraîchissement de l'aperçu
-    function startPreviewRefresh(projectId, interval = defaultRefreshSeconds) {
-        stopPreviewRefresh();
-        
-        previewTimer = setInterval(function() {
-            if (!isPageVisible || !currentProjectId) return;
-            
-            const previewImage = document.getElementById('preview-image');
-            if (previewImage) {
-                // Ajouter un timestamp pour éviter la mise en cache
-                previewImage.src = `/api/timelapse/projects/${projectId}/preview?t=${Date.now()}`;
-            }
-        }, interval * 1000);
-    }
-    
-    // Fonction pour arrêter le rafraîchissement de l'aperçu
-    function stopPreviewRefresh() {
-        if (previewTimer) {
-            clearInterval(previewTimer);
-            previewTimer = null;
-        }
-    }
-    
-    // Fonction pour redémarrer le timer avec un nouvel intervalle
-    function restartPreviewRefresh(projectId, interval) {
-        stopPreviewRefresh();
-        startPreviewRefresh(projectId, interval);
-    }
-    
-    // Fonction pour capturer une image manuellement
-    function captureImage(projectId) {
-        const captureBtn = document.getElementById('capture-button');
-        
-        if (captureBtn) {
-            captureBtn.disabled = true;
-            captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Capture en cours...';
-        }
-        
-        fetch(`/api/timelapse/projects/${projectId}/capture`, {
-            method: 'POST'
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.detail || 'Échec de la capture');
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            showNotification('success', 'Capture réussie', data.message);
-            
-            // Mettre à jour l'image d'aperçu
-            const previewImage = document.getElementById('preview-image');
-            if (previewImage) {
-                previewImage.src = `/api/timelapse/projects/${projectId}/preview?t=${Date.now()}`;
-            }
-            
-            // Recharger les détails pour mettre à jour les compteurs
-            loadProjectDetails(projectId);
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            showNotification('danger', 'Erreur de capture', error.message);
-        })
-        .finally(() => {
-            if (captureBtn) {
-                captureBtn.disabled = false;
-                captureBtn.innerHTML = '<i class="fas fa-camera me-1"></i>Capturer manuellement';
-            }
-        });
-    }
-    
+
     // Fonction pour configurer le formulaire d'édition
     function setupEditForm(project) {
         if (!editProjectForm) return;
-        
+
         const form = editProjectForm.querySelector('form');
         form.dataset.id = project.id;
         form.elements.name.value = project.name;
         form.elements.duration_minutes.value = project.duration_minutes;
         form.elements.interval_seconds.value = project.interval_seconds;
         form.elements.fps.value = project.fps;
-        
+
         // Sélectionner l'option de rotation
         const rotationSelect = form.elements.rotation;
         for (let i = 0; i < rotationSelect.options.length; i++) {
@@ -601,12 +482,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
             }
         }
-        
+
         // Afficher la modale
         const editModal = new bootstrap.Modal(editProjectForm);
         editModal.show();
     }
-    
+
     // Fonction pour afficher une notification
     function showNotification(type, title, message) {
         const alertHTML = `
@@ -615,14 +496,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
             </div>
         `;
-        
+
         const alertContainer = document.createElement('div');
         alertContainer.innerHTML = alertHTML;
-        
+
         const container = document.querySelector('.container');
         if (container) {
             container.prepend(alertContainer.firstChild);
-            
+
             // Auto-fermeture après 5 secondes
             setTimeout(() => {
                 const alertElement = container.querySelector(`.alert-${type}`);
@@ -633,44 +514,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 5000);
         }
     }
-    
+
     // Écouteurs pour la visibilité de la page
     document.addEventListener('visibilitychange', function() {
         isPageVisible = document.visibilityState === 'visible';
-        
+
         if (isPageVisible && currentProjectId) {
-            // Rafraîchir immédiatement l'aperçu et le statut
-            const previewImage = document.getElementById('preview-image');
-            if (previewImage) {
-                previewImage.src = `/api/timelapse/projects/${currentProjectId}/preview?t=${Date.now()}`;
-            }
-            
             checkAutoCaptureStatus(currentProjectId);
-            
-            // Redémarrer les timers
-            const refreshInterval = document.getElementById('refresh-interval');
-            if (refreshInterval) {
-                startPreviewRefresh(currentProjectId, parseInt(refreshInterval.value));
-            } else {
-                startPreviewRefresh(currentProjectId);
-            }
-            
             startStatusRefresh(currentProjectId);
         } else {
             // Arrêter les timers lorsque la page n'est pas visible
-            stopPreviewRefresh();
             stopStatusRefresh();
         }
     });
-    
+
     // Écouteur pour le formulaire de création
     if (newProjectForm) {
         const form = newProjectForm.querySelector('form');
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             const formData = new FormData(this);
-            
+
             fetch('/api/timelapse/projects', {
                 method: 'POST',
                 body: formData
@@ -694,16 +559,16 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Écouteur pour le formulaire d'édition
     if (editProjectForm) {
         const form = editProjectForm.querySelector('form');
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             const projectId = this.dataset.id;
             const formData = new FormData(this);
-            
+
             fetch(`/api/timelapse/projects/${projectId}`, {
                 method: 'PUT',
                 body: formData
@@ -724,7 +589,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Erreur:', error);
-                
+
                 // Afficher l'erreur dans la modale
                 const alertContainer = editProjectForm.querySelector('.modal-body .alert-container');
                 if (alertContainer) {
@@ -739,13 +604,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Écouteur pour la suppression
     const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
     if (confirmDeleteBtn) {
         confirmDeleteBtn.addEventListener('click', function() {
             const projectId = this.dataset.id;
-            
+
             fetch(`/api/timelapse/projects/${projectId}`, {
                 method: 'DELETE'
             })
@@ -760,15 +625,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 deleteModal.hide();
                 showNotification('success', 'Projet supprimé', data.message);
-                
+
                 if (currentProjectId === projectId) {
-                    stopPreviewRefresh();
                     stopStatusRefresh();
                     hideElement(projectDetails);
                     showElement(newProjectForm);
                     currentProjectId = null;
                 }
-                
+
                 loadProjects();
             })
             .catch(error => {
@@ -778,7 +642,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Charger la liste des projets au démarrage
     loadProjects();
 });
